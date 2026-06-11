@@ -1,5 +1,5 @@
 
-```markdown
+---
 # 🛠️ Tool Framework Template Repository
 
 ## 📌 Overview
@@ -7,6 +7,7 @@
 This repository provides a standardized framework for building, installing, and managing tool modules with automated dependency handling and CI/CD integration.
 
 It ensures consistent structure, version-based dependency fetch, and seamless installation/uninstallation across environments.
+---
 
 ---
 
