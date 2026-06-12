@@ -3,44 +3,34 @@ apply from: 'deps.gradle'
 task installDeps {
     doLast {
         deps.each { dep ->
-            def depPath = "${buildDir}/deps/${dep.repo}"
+            def depBase = "${buildDir}/deps/${dep.repo}"
+            def depZip = "${depBase}.zip"
+            def branchOrTag = dep.version == "latest" ? "main" : dep.version
 
-            if (!file(depPath).exists()) {
-                println "Cloning dependency repo: ${dep.repo} from org ${org}"
+            if (!file(depBase).exists()) {
+                println "Downloading dependency repo: ${dep.repo} from org ${org}"
                 exec {
-                    commandLine "git", "clone", "https://github.com/${org}/${dep.repo}.git", depPath
+                    commandLine "curl", "-L",
+                        "https://github.com/${org}/${dep.repo}/archive/${branchOrTag}.zip",
+                        "-o", depZip
                 }
-            } else {
-                println "Updating dependency repo: ${dep.repo}"
-                exec {
-                    workingDir depPath
-                    commandLine "git", "pull"
+
+                // Use Gradle's built-in copy to unzip
+                project.copy {
+                    from zipTree(depZip)
+                    into "${buildDir}/deps"
+                }
+
+                // Fix extracted folder name (GitHub adds -main or -tag suffix)
+                def extracted = file("${buildDir}/deps/${dep.repo}-${branchOrTag}")
+                if (extracted.exists()) {
+                    extracted.renameTo(file(depBase))
                 }
             }
 
-            // Handle version logic
-            if (dep.version == "latest") {
-                println "Fetching latest commit for ${dep.repo}"
-                exec {
-                    workingDir depPath
-                    commandLine "git", "checkout", "main"   // assumes main is default branch
-                }
-                exec {
-                    workingDir depPath
-                    commandLine "git", "pull"
-                }
-            } else {
-                println "Checking out version ${dep.version} for ${dep.repo}"
-                exec {
-                    workingDir depPath
-                    commandLine "git", "checkout", dep.version
-                }
-            }
-
-            // Instead of calling install.sh directly, run Gradle install task
             println "Installing dependency via Gradle: ${dep.repo}"
             exec {
-                workingDir depPath
+                workingDir depBase
                 commandLine "./gradlew", "install"
             }
         }
