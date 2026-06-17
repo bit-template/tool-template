@@ -4,7 +4,7 @@ set -euo pipefail
 # --- Config ---
 IMAGE_NAME="installer-sandbox"
 CONTAINER_NAME="installer-test"
-TIMEOUT="${TIMEOUT:-1800}"   # default 30 minutes, override with TIMEOUT=600 ./test.sh
+TIMEOUT="${EXECUTION_TIMEOUT:-1800}"   # default 30 minutes, override with TIMEOUT=600 ./test.sh
 
 # --- Paths ---
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"   # test/ folder
