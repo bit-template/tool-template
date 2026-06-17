@@ -24,8 +24,10 @@ docker run --name "$CONTAINER_NAME" -d "$IMAGE_NAME" tail -f /dev/null
 
 # --- Results tracking ---
 RESULT_INSTALL="PASS"
+RESULT_TESTCASE="SKIPPED"
 RESULT_UNINSTALL="PASS"
 LOG_INSTALL="$SCRIPT_DIR/install.log"
+LOG_TESTCASE="$SCRIPT_DIR/testvector.log"
 LOG_UNINSTALL="$SCRIPT_DIR/uninstall.log"
 
 # --- Execute install.sh ---
@@ -36,9 +38,21 @@ if ! docker exec "$CONTAINER_NAME" timeout "$TIMEOUT" bash /root/src/install.sh;
   echo "[INFO] Logs saved to $LOG_INSTALL"
 fi
 
-# --- Verification step ---
-echo "[INFO] Verifying installation..."
-docker exec "$CONTAINER_NAME" bash -c 'command -v docker && echo "✅ docker installed" || echo "❌ docker missing"'
+# --- Execute test_cases.sh ---
+if docker exec "$CONTAINER_NAME" test -f /root/test/test_cases.sh; then
+  echo "[INFO] Running test_cases.sh inside container..."
+  if ! docker exec "$CONTAINER_NAME" timeout "$TIMEOUT" bash /root/test/test_cases.sh; then
+    RESULT_TESTCASE="FAIL"
+    docker logs "$CONTAINER_NAME" > "$LOG_TESTCASE"
+    echo "[INFO] Logs saved to $LOG_TESTCASE"
+  else
+    RESULT_TESTCASE="PASS"
+  fi
+else
+  echo "[INFO] No test_cases.sh found, skipping custom checks."
+  RESULT_TESTCASE="SKIPPED"
+fi
+
 
 # --- Execute uninstall.sh ---
 echo "[INFO] Running src/uninstall.sh inside container (timeout=$TIMEOUT seconds)..."
@@ -47,10 +61,6 @@ if ! docker exec "$CONTAINER_NAME" timeout "$TIMEOUT" bash /root/src/uninstall.s
   docker logs "$CONTAINER_NAME" > "$LOG_UNINSTALL"
   echo "[INFO] Logs saved to $LOG_UNINSTALL"
 fi
-
-# --- Post-uninstall verification ---
-echo "[INFO] Verifying uninstall..."
-docker exec "$CONTAINER_NAME" bash -c 'command -v docker && echo "❌ docker still present" || echo "✅ docker removed"'
 
 # --- Cleanup ---
 echo "[INFO] Stopping and removing container..."
@@ -62,6 +72,7 @@ echo
 echo "=== Summary Report ==="
 printf "%-15s %-10s %-30s\n" "Step" "Result" "Log File"
 printf "%-15s %-10s %-30s\n" "install.sh" "$RESULT_INSTALL" "$LOG_INSTALL"
+printf "%-15s %-10s %-30s\n" "testvector.sh" "$RESULT_TESTCASE" "$LOG_TESTCASE"
 printf "%-15s %-10s %-30s\n" "uninstall.sh" "$RESULT_UNINSTALL" "$LOG_UNINSTALL"
 echo "======================"
 echo "[DONE] Test completed in isolated Docker sandbox."
