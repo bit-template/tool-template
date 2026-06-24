@@ -9,6 +9,31 @@ pipeline {
             }
         }
 
+        stage('Validate Build') {
+            steps {
+                script {
+
+                    echo "BRANCH_NAME=${env.BRANCH_NAME}"
+                    echo "CHANGE_ID=${env.CHANGE_ID}"
+                    echo "CHANGE_BRANCH=${env.CHANGE_BRANCH}"
+                    echo "CHANGE_TARGET=${env.CHANGE_TARGET}"
+
+                    if (env.BRANCH_NAME == 'main') {
+                        echo "Main branch build"
+                        return
+                    }
+
+                    if (env.CHANGE_ID && env.CHANGE_TARGET == 'main') {
+                        echo "Pull Request targeting main"
+                        return
+                    }
+
+                    currentBuild.result = 'NOT_BUILT'
+                    error("Build skipped. Only main branch and PRs targeting main are allowed.")
+                }
+            }
+        }		
+
         stage('Init Variables') {
             steps {
                 script {
@@ -41,9 +66,9 @@ pipeline {
         }
 
 		stage('Sync Template') {
-		    when {
-		        expression { return false } // always skip
-		    }
+//		    when {
+//		        expression { return false } // always skip
+//		    }
 		    steps {
 		        withCredentials([usernamePassword(
 		            credentialsId: 'github-creds',
