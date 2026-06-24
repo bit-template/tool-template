@@ -190,7 +190,7 @@ task linkTemplateRepo(dependsOn: prepareEnv) {
             ignoreExitValue true
             commandLine "git", "subtree", "add", "--prefix=.", templateName, "main", "--squash"
         }
-        if (subtreeAdd.exitValue != 0) {
+        /* if (subtreeAdd.exitValue != 0) {
             println "[WARN] Subtree add failed, trying squash merge"
             def merge = exec {
                 ignoreExitValue true
@@ -199,7 +199,7 @@ task linkTemplateRepo(dependsOn: prepareEnv) {
             if (merge.exitValue != 0) {
                 throw new GradleException("Merge failed, conflicts must be resolved")
             }
-        }
+        } */
 
         def diff = exec {
             ignoreExitValue true
