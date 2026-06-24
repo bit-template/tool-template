@@ -245,27 +245,38 @@ task syncTemplate(dependsOn: prepareEnv) {
 
         println "[INFO] Adding remote for template: ${templateName}"
         exec {
+            ignoreExitValue true
             commandLine "git", "remote", "add", templateName, templateRepo
         }
-        // ignore if already exists
         exec {
             commandLine "git", "fetch", templateName, "main"
         }
 
-        // Try subtree add first
-        def subtreeAdd = exec {
+        // Try subtree pull first (for updates)
+        def subtreePull = exec {
             ignoreExitValue true
-            commandLine "git", "subtree", "add", "--prefix=.", templateName, "main", "--squash"
+            commandLine "git", "subtree", "pull", "--prefix=.", templateName, "main", "--squash"
         }
-        if (subtreeAdd.exitValue != 0) {
-            println "[WARN] Subtree add failed, trying squash merge"
+
+        if (subtreePull.exitValue != 0) {
+            println "[WARN] Subtree pull failed, trying squash merge"
+
             def merge = exec {
                 ignoreExitValue true
-                commandLine "git", "merge", "--squash", "--allow-unrelated-histories", "${templateName}/main"
+                commandLine "git", "merge", "--squash", "--allow-unrelated-histories", "-Xtheirs", "${templateName}/main"
             }
-            if (merge.exitValue != 0) {
+
+            if (merge.exitValue == 0) {
+                // Reset src/ back to your repo’s version
+                exec { commandLine "git", "checkout", "--ours", "--", "src" }
+                exec { commandLine "git", "add", "src" }
+            } else {
                 throw new GradleException("Merge failed, conflicts must be resolved")
             }
+        } else {
+            // Even after a successful pull, preserve src/
+            exec { commandLine "git", "checkout", "--ours", "--", "src" }
+            exec { commandLine "git", "add", "src" }
         }
 
         // Commit if staged changes exist
@@ -275,7 +286,7 @@ task syncTemplate(dependsOn: prepareEnv) {
         }
         if (diff.exitValue != 0) {
             exec {
-                commandLine "git", "commit", "-m", "Link template remote: ${templateName}"
+                commandLine "git", "commit", "-m", "Sync template remote: ${templateName}"
             }
             def pushUrl = "https://${adminUser}:${githubToken}@github.com/${org}/${repo}.git"
             def push = exec {
@@ -285,12 +296,9 @@ task syncTemplate(dependsOn: prepareEnv) {
             if (push.exitValue != 0) {
                 throw new GradleException("Push failed")
             }
-            println "[SUCCESS] Template linked and pushed"
+            println "[SUCCESS] Template synced and pushed"
         } else {
             println "[SUCCESS] No changes to commit"
         }
     }
 }
-
-
-
