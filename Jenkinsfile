@@ -56,8 +56,8 @@ pipeline {
                     passwordVariable: 'GITHUB_TOKEN'
                 )]) {
                     sh """
-                        /opt/scripts/gradlew-permission.sh ${env.REPO} ${env.ORG}
-			            /opt/scripts/add-template-remote.sh ${env.REPO} ${env.ORG} ${env.TEMPLATE_REPO}
+                        /opt/scripts/add-template-remote.sh ${env.REPO} ${env.ORG} ${env.TEMPLATE_REPO}
+						/opt/scripts/gradlew-permission.sh ${env.REPO} ${env.ORG}
                         /opt/scripts/remove-flag.sh ${env.REPO} ${env.ORG}
                         /opt/scripts/branch-protection.sh ${env.REPO} ${env.ORG}
                     """
