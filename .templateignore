@@ -1,0 +1,7 @@
+# Repository-specific content
+
+src
+README.md
+deps.gradle
+settings.gradle
+gradle.properties
