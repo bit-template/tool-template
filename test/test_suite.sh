@@ -3,7 +3,7 @@ set -euo pipefail
 
 # --- Config ---
 IMAGE_NAME="installer-sandbox"
-CONTAINER_NAME="installer-test"
+CONTAINER_NAME="installer-test-${BUILD_NUMBER:-$$}"
 TIMEOUT="${EXECUTION_TIMEOUT:-1800}"   # default 30 minutes, override with EXECUTION_TIMEOUT
 
 # --- Paths ---
@@ -20,7 +20,7 @@ docker build -t "$IMAGE_NAME" -f "$SCRIPT_DIR/Dockerfile.test" "$SCRIPT_DIR/.."
 
 # --- Run container ---
 echo "[INFO] Starting sandbox container..."
-docker run --name "$CONTAINER_NAME" -d "$IMAGE_NAME" tail -f /dev/null
+docker run --rm --name "$CONTAINER_NAME" -d "$IMAGE_NAME" tail -f /dev/null
 
 # --- Results tracking ---
 RESULT_INSTALL="PASS"
