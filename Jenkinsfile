@@ -9,30 +9,32 @@ pipeline {
             }
         }
 
-        stage('Validate Build') {
-            steps {
-                script {
+stage('Validate Build') {
+    steps {
+        script {
+            echo "BRANCH_NAME=${env.BRANCH_NAME}"
+            echo "CHANGE_ID=${env.CHANGE_ID}"
+            echo "CHANGE_BRANCH=${env.CHANGE_BRANCH}"
+            echo "CHANGE_TARGET=${env.CHANGE_TARGET}"
 
-                    echo "BRANCH_NAME=${env.BRANCH_NAME}"
-                    echo "CHANGE_ID=${env.CHANGE_ID}"
-                    echo "CHANGE_BRANCH=${env.CHANGE_BRANCH}"
-                    echo "CHANGE_TARGET=${env.CHANGE_TARGET}"
-
-                    if (env.BRANCH_NAME == 'main') {
-                        echo "Main branch build"
-                        return
-                    }
-
-                    if (env.CHANGE_ID && env.CHANGE_TARGET == 'main') {
-                        echo "Pull Request targeting main"
-                        return
-                    }
-
+            if (env.CHANGE_ID) {
+                // This is a PR build
+                if (env.CHANGE_TARGET == 'main') {
+                    echo "Pull Request targeting main"
+                    return
+                } else {
                     currentBuild.result = 'NOT_BUILT'
-                    error("Build skipped. Only main branch and PRs targeting main are allowed.")
+                    error("Build skipped. Pull requests must target 'main'.")
                 }
+            } else {
+                // Normal branch build (main or any other branch)
+                echo "Branch build: ${env.BRANCH_NAME}"
+                return
             }
-        }		
+        }
+    }
+}
+		
 
         stage('Init Variables') {
             steps {
